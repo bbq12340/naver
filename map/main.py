@@ -40,7 +40,7 @@ def extract_naver_map():
     search_frame = browser.find_element_by_xpath("//object[@id='searchIframe']")
     browser.switch_to.frame(search_frame)
     for p in range(last_page):
-        print(f"extracting page{p+1}/{last_page}")
+        print(f"----------------------------------------------------\n\nextracting page{p+1}/{last_page}\n\n----------------------------------------------------\n\n")
         time.sleep(1)
         while True:
             atags_1 = browser.find_elements_by_class_name('_2aE-_')
@@ -52,16 +52,14 @@ def extract_naver_map():
         by_xpath = By.XPATH, '//object[@id="entryIframe"]'
         for a in atags:
             a.click()
-            print(atags.index(a)+1)
-            #wait.until(EC.presence_of_element_located(by_xpath))
-            #url = browser.find_elements_by_tag_name('object')[1].get_attribute('data')
-            #body = browser.find_element_by_tag_name("body")
-            #body.send_keys(Keys.CONTROL + 't')
-            #body.get(url)
-            #browser.switch_to_window(browser.window_handles[-1])
-            html = browser.execute_script("return document.documentElement.outerHTML")
-            with open('new_html.txt', 'w') as f:
-                f.write(html)
+            time.sleep(1)
+            browser.switch_to_default_content()
+            wait.until(EC.presence_of_element_located(by_xpath))
+            url = browser.find_elements_by_tag_name('object')[1].get_attribute('data')
+            browser.execute_script("window.open('');")
+            browser.switch_to_window(browser.window_handles[-1])
+            browser.get(url)
+            html = browser.execute_script('return document.body.outerHTML')
             soup = BeautifulSoup(html,'html.parser')
             title = soup.find('span', {'class': '_3XamX'}).text
             address = soup.find('span',{'class': '_2yqUQ'}).text
@@ -72,6 +70,7 @@ def extract_naver_map():
                 phone = None
             browser.close()
             browser.switch_to_window(browser.window_handles[0])
+            browser.switch_to.frame(search_frame)
             with open(f'{query}.csv', 'a', encoding='utf-8') as csvfile:
                 csvfile_writer = csv.writer(csvfile, delimiter=',')
                 csvfile_writer.writerow([title, address, phone])
