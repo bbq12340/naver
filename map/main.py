@@ -5,7 +5,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, WebDriverException
 import time, csv
 import tkinter as tk
 from tkinter import messagebox
@@ -59,8 +59,17 @@ def extract_naver_map():
             browser.execute_script("window.open('');")
             browser.switch_to_window(browser.window_handles[-1])
             browser.get(url)
-            html = browser.execute_script('return document.body.outerHTML')
-            soup = BeautifulSoup(html,'html.parser')
+            try:
+                html = browser.execute_script('return document.body.outerHTML')
+                soup = BeautifulSoup(html,'html.parser')
+            except WebDriverException:
+                browser.close()
+                browser.switch_to_window(browser.window_handles[0])
+                entry_frame = browser.find_element_by_xpath('//object[@id="entryIframe"]')
+                browser.switch_to_frame(entry_frame)
+                html = browser.execute_script('return document.body.outerHTML')
+                soup = BeautifulSoup(html,'html.parser')
+                browser.switch_to_default_content()
             title = soup.find('span', {'class': '_3XamX'}).text
             address = soup.find('span',{'class': '_2yqUQ'}).text
             phone = soup.find('li', {'class': '_3xPmJ'})
@@ -68,12 +77,15 @@ def extract_naver_map():
                 phone = phone.text.split('안내')[0]
             else:
                 phone = None
-            browser.close()
-            browser.switch_to_window(browser.window_handles[0])
+            if len(browser.window_handles) >1 :
+                browser.close()
+                browser.switch_to_window(browser.window_handles[0])
+            else:
+                pass
             browser.switch_to.frame(search_frame)
             with open(f'{query}.csv', 'a', encoding='utf-8') as csvfile:
                 csvfile_writer = csv.writer(csvfile, delimiter=',')
-                csvfile_writer.writerow([title, address, phone])
+                csvfile_writer.writerow([title, address, phone, url])
         #click next page
         next_btn = browser.find_elements_by_class_name('_3pA6R')[1]
         next_btn.click()
