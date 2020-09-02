@@ -10,6 +10,7 @@ import time, csv
 import tkinter as tk
 from tkinter import messagebox
 from bs4 import BeautifulSoup
+import pandas as pd
 
 from pagination import get_pages
 from browser import open_browser,get_browser
@@ -26,6 +27,10 @@ keyword = tk.StringVar()
 
 
 def extract_naver_map():
+    TITLE = []
+    ADDRESS = []
+    PHONE = []
+    URL = []
     query = loc.get()+" "+keyword.get()
     browser = open_browser(query)
     wait = WebDriverWait(browser, 30)
@@ -48,6 +53,7 @@ def extract_naver_map():
             atags = browser.find_elements_by_class_name('_2aE-_')
             if len(atags_1) == len(atags):
                 break
+        print(f"현 페이지 총 아이템 수: {len(atags)}\n\n")
         #extract
         by_xpath = By.XPATH, '//object[@id="entryIframe"]'
         for a in atags:
@@ -83,9 +89,12 @@ def extract_naver_map():
             else:
                 pass
             browser.switch_to.frame(search_frame)
-            with open(f'{query}.csv', 'a', encoding='utf-8') as csvfile:
-                csvfile_writer = csv.writer(csvfile, delimiter=',')
-                csvfile_writer.writerow([title, address, phone, url])
+            TITLE.append(title)
+            ADDRESS.append(address)
+            PHONE.append(phone)
+            URL.append(url)
+            df = pd.DataFrame({'상호명': TITLE, '주소': ADDRESS, '전화번호': PHONE, '링크': URL})
+            df.to_csv(f'{query}.csv', encoding='utf-8')
         #click next page
         next_btn = browser.find_elements_by_class_name('_3pA6R')[1]
         next_btn.click()
