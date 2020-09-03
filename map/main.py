@@ -49,8 +49,12 @@ def extract_naver_map():
         time.sleep(1)
         while True:
             atags_1 = browser.find_elements_by_class_name('_2aE-_')
+            if len(atags_1) == 0:
+                atags_1 = browser.find_elements_by_class_name('Tx7az') 
             browser.execute_script("document.querySelector('._1Az1K').scrollTo(document.querySelector('._1Az1K').scrollTop, document.querySelector('._1Az1K').scrollHeight);")
             atags = browser.find_elements_by_class_name('_2aE-_')
+            if len(atags) == 0:
+                atags = browser.find_elements_by_class_name('Tx7az')
             if len(atags_1) == len(atags):
                 break
         print(f"현 페이지 총 아이템 수: {len(atags)}\n\n")
