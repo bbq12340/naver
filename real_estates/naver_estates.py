@@ -4,7 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException, TimeoutException
 from bs4 import BeautifulSoup
 import requests
 import time, datetime
@@ -21,10 +21,10 @@ def more_tab_condition(browser, query):
         except WebDriverException:
             browser.refresh()
             url = browser.current_url
-            with open (f'네이버 외 부동산-{query}-{datetime.date.today()}.txt', 'a') as f:
-                f.write(f"{url}\n")
-            browser.close()
-            browser.switch_to_window(browser.window_handles[0])
+        with open (f'네이버 외 부동산-{query}-{datetime.date.today()}.txt', 'a') as f:
+            f.write(f"{url}\n")
+        browser.close()
+        browser.switch_to_window(browser.window_handles[0])
 
 def clean_data(query):
     print('데이터 정리 중...')
@@ -57,8 +57,24 @@ def extract_naver_estate(query):
     items = browser.find_elements_by_class_name('item_link')
     print(f'총 아이템 수: {len(items)}')
     df = pd.DataFrame([], columns=['매물 번호','매물유형', '매물명', '날짜', '해당층', '총층', '지상층', '지하층', '매물 특징', '거래방식', '가격', '평당금액(만원)', '계약 면적(평)', '전용 면적(평)', '대지 면적(평)', '연 면적(평)', '링크'])
-    items[0].click()
-    more_tab_condition(browser, query)
+    n=0
+    while True:
+        items[n].click()
+        n=n+1
+        if len(browser.window_handles) > 1:
+            try:
+                browser.switch_to_window(browser.window_handles[-1])
+                url = browser.current_url
+            except WebDriverException:
+                browser.refresh()
+                url = browser.current_url
+            with open (f'네이버 외 부동산-{query}-{datetime.date.today()}.txt', 'a') as f:
+                f.write(f"{url}\n")
+            browser.close()
+            browser.switch_to_window(browser.window_handles[0])
+        else:
+            break
+        
     browser.execute_script('document.querySelector(".tab_area_unit").click();')
     for item in items:
         print(f"{items.index(item)+1}/{len(items)} 진행완료")
@@ -117,12 +133,12 @@ def extract_naver_estate(query):
                     price_pyeong = price_pyeong_1+'/'+price_pyeong_2
             else:
                 try:
-                    price_pyeong = float(price.split('/')[-1].replace(',',''))/float(contract_space)
+                    price_pyeong = float(price.split('/')[-1].replace(',',''))/float(whole_space)
                     price_pyeong = round(price_pyeong, 2)
                 except ValueError:
                     string_value = price.split('/')[-1].replace(',','').split(" ")
                     float_value = float(string_value[0].replace('억', '00000000')) + float(string_value[1])
-                    price_pyeong = round(float_value/float(contract_space), 2)
+                    price_pyeong = round(float_value/float(whole_space), 2)
             if space_type == '대지/연 면적':
                 row = [num, category, title, date, contract_floor, whole_floor, upper_floor, under_floor, feature, trade_type, price, price_pyeong, np.nan, np.nan, contract_space, whole_space, url]
                 row_df = pd.DataFrame([row], columns=['매물 번호','매물유형', '매물명', '날짜', '해당층','총층', '지상층', '지하층', '매물 특징','거래방식', '가격', '평당금액(만원)', '계약 면적(평)', '전용 면적(평)', '대지 면적(평)', '연 면적(평)', '링크'])
@@ -131,7 +147,7 @@ def extract_naver_estate(query):
                 row_df = pd.DataFrame([row], columns=['매물 번호','매물유형', '매물명', '날짜', '해당층','총층', '지상층', '지하층', '매물 특징','거래방식', '가격', '평당금액(만원)', '계약 면적(평)', '전용 면적(평)', '대지 면적(평)', '연 면적(평)', '링크'])
             df = df.append(row_df, ignore_index=True)
             df.to_csv(f'{query}.csv', encoding='utf-8')
-        except TimeoutError:
+        except (TimeoutError, TimeoutException):
             pass
         
     browser.close()
