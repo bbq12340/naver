@@ -5,11 +5,12 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, WebDriverException
 import time, csv
 import tkinter as tk
 from tkinter import messagebox
 from bs4 import BeautifulSoup
+import pandas as pd
 
 from pagination import get_pages
 from browser import open_browser,get_browser
@@ -26,6 +27,10 @@ keyword = tk.StringVar()
 
 
 def extract_naver_map():
+    TITLE = []
+    ADDRESS = []
+    PHONE = []
+    URL = []
     query = loc.get()+" "+keyword.get()
     browser = open_browser(query)
     wait = WebDriverWait(browser, 30)
@@ -40,29 +45,41 @@ def extract_naver_map():
     search_frame = browser.find_element_by_xpath("//object[@id='searchIframe']")
     browser.switch_to.frame(search_frame)
     for p in range(last_page):
-        print(f"extracting page{p+1}/{last_page}")
+        print(f"----------------------------------------------------\n\nextracting page{p+1}/{last_page}\n\n----------------------------------------------------\n\n")
         time.sleep(1)
         while True:
             atags_1 = browser.find_elements_by_class_name('_2aE-_')
+            if len(atags_1) == 0:
+                atags_1 = browser.find_elements_by_class_name('Tx7az') 
             browser.execute_script("document.querySelector('._1Az1K').scrollTo(document.querySelector('._1Az1K').scrollTop, document.querySelector('._1Az1K').scrollHeight);")
             atags = browser.find_elements_by_class_name('_2aE-_')
+            if len(atags) == 0:
+                atags = browser.find_elements_by_class_name('Tx7az')
             if len(atags_1) == len(atags):
                 break
+        print(f"현 페이지 총 아이템 수: {len(atags)}\n\n")
         #extract
         by_xpath = By.XPATH, '//object[@id="entryIframe"]'
         for a in atags:
             a.click()
-            print(atags.index(a)+1)
-            #wait.until(EC.presence_of_element_located(by_xpath))
-            #url = browser.find_elements_by_tag_name('object')[1].get_attribute('data')
-            #body = browser.find_element_by_tag_name("body")
-            #body.send_keys(Keys.CONTROL + 't')
-            #body.get(url)
-            #browser.switch_to_window(browser.window_handles[-1])
-            html = browser.execute_script("return document.documentElement.outerHTML")
-            with open('new_html.txt', 'w') as f:
-                f.write(html)
-            soup = BeautifulSoup(html,'html.parser')
+            time.sleep(1)
+            browser.switch_to_default_content()
+            wait.until(EC.presence_of_element_located(by_xpath))
+            url = browser.find_elements_by_tag_name('object')[1].get_attribute('data')
+            browser.execute_script("window.open('');")
+            browser.switch_to_window(browser.window_handles[-1])
+            browser.get(url)
+            try:
+                html = browser.execute_script('return document.body.outerHTML')
+                soup = BeautifulSoup(html,'html.parser')
+            except WebDriverException:
+                browser.close()
+                browser.switch_to_window(browser.window_handles[0])
+                entry_frame = browser.find_element_by_xpath('//object[@id="entryIframe"]')
+                browser.switch_to_frame(entry_frame)
+                html = browser.execute_script('return document.body.outerHTML')
+                soup = BeautifulSoup(html,'html.parser')
+                browser.switch_to_default_content()
             title = soup.find('span', {'class': '_3XamX'}).text
             address = soup.find('span',{'class': '_2yqUQ'}).text
             phone = soup.find('li', {'class': '_3xPmJ'})
@@ -70,11 +87,18 @@ def extract_naver_map():
                 phone = phone.text.split('안내')[0]
             else:
                 phone = None
-            browser.close()
-            browser.switch_to_window(browser.window_handles[0])
-            with open(f'{query}.csv', 'a', encoding='utf-8') as csvfile:
-                csvfile_writer = csv.writer(csvfile, delimiter=',')
-                csvfile_writer.writerow([title, address, phone])
+            if len(browser.window_handles) >1 :
+                browser.close()
+                browser.switch_to_window(browser.window_handles[0])
+            else:
+                pass
+            browser.switch_to.frame(search_frame)
+            TITLE.append(title)
+            ADDRESS.append(address)
+            PHONE.append(phone)
+            URL.append(url)
+            df = pd.DataFrame({'상호명': TITLE, '주소': ADDRESS, '전화번호': PHONE, '링크': URL})
+            df.to_csv(f'{query}.csv', encoding='utf-8')
         #click next page
         next_btn = browser.find_elements_by_class_name('_3pA6R')[1]
         next_btn.click()
