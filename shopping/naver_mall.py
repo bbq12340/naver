@@ -1,41 +1,47 @@
   
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-import requests, urllib, random, string
+import requests, urllib, random, string, time
 from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 from tkinter import messagebox
 import tkinter as tk
 
+THUMBNAIL = []
 
 with open('request.txt', 'r', encoding='utf-8') as f:
     request_list = f.readlines()
 item_list = [request.replace("\n", "") for request in request_list]
 print(f"아이템 수량: {len(item_list)}")
 
-"""
-def open_browser():
-    options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--disable-gpu')  
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-    return driver
-"""
+with open('쇼핑몰.txt', 'w') as f:
+    f.write('')
+
+with open('img_error.txt', 'w') as f:
+    f.write('')
+
+driver = webdriver.Chrome(ChromeDriverManager().install())
+xpath = By.XPATH, '//*[@id="__next"]/div/div[2]/div/div[3]/div[1]/ul/div/div[1]/li/div/div[1]/div/a/img'
+
 def save_info(query):
-    r = requests.get(f'https://search.shopping.naver.com/search/all?query={query} "{query}"&sort=review')
-    soup = BeautifulSoup(r.text, 'html.parser')
+    driver.get(f'https://search.shopping.naver.com/search/all?query={query} "{query}"&sort=review')
+    time.sleep(0.5)
+    html = driver.execute_script('return document.body.outerHTML;')
+    soup = BeautifulSoup(html, 'html.parser')
     no_result = soup.find('div',{'class':'noResult_no_result__1ad0P'})
+    rated = soup.find_all("p", string="연령 확인이 필요한 서비스입니다. 로그인후 이용해 주세요.")
 
     if no_result:
-        price = "No Result"
-        cat = "No Result"
-        review = "No Result"
-    elif soup.find_all(text="연령 확인이 필요한 서비스입니다. 로그인후 이용해 주세요."):
-        price = "청소년 부적절"
-        cat = "청소년 부적절"
-        review = "청소년 부적절"
+        no_result_list = ["No Result" for i in range(0,5)]
+        row = [query] + no_result_list
+    elif rated:
+        rated_list = ["청소년 부적절" for i in range(0,5)]
+        row = [query] + rated_list
     else:
         price = soup.find('div', {'class': 'basicList_price_area__1UXXR'}).text
         category = soup.find('div', {'class': 'basicList_depth__2QIie'})
@@ -53,36 +59,31 @@ def save_info(query):
         else:
             mall_name = mall_area.find('div', {'class': 'basicList_mall_title__3MWFY'}).find('a')
             if mall_name.find('img'):
-                mall_name = mall_name['alt']
+                mall_name = mall_name.find('img')['alt']
             else:
                 mall_name = mall_name.text
         date = soup.find('button', {'class': 'basicList_btn_zzim__2MGkM'}).parent.previous_sibling.text.replace('등록일 ','')
         now = datetime.now()
-        current_time = now.strftime("%Y/%m/%d %H:%M:%S")
+        current_time = now.strftime("%Y-%m-%d %H:%M:%S")
         random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
         img_name= f"{current_time}-{random_code}"
         row = [query, price, cat, review, mall_name, date, img_name]
-        #thumbnail = soup.find('a', {'class': 'thumbnail_thumb__3Agq6'})
-
-        with open('html.txt', 'w') as f:
-            f.write(str(soup))
-        """
-        try:
-            urllib.request.urlretrieve(thumbnail, f"{img_name}.jpg")
-        except Exception:
-            with open("img_error.txt", 'a', encoding='utf-8') as f:
-                f.write(f"thumbnail\n")
-        """
-        with open('쇼핑몰.txt', 'a', encoding='utf-8'):
-            row = ('\t').join(row)
-            f.writelines(row)
-        
-
-
-
+        thumbnail = soup.find('a', {'class': 'thumbnail_thumb__3Agq6'})
+        if thumbnail:
+            try:
+                thumbnail = thumbnail.find('img')['src'].split("?type")[0]
+            except TypeError:
+                driver.refresh()
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located(xpath))
+                thumbnail = soup.find('a', {'class': 'thumbnail_thumb__3Agq6'}).find('img')['src'].split("?type")[0]
+            urllib.request.urlretrieve(thumbnail, f'images/{img_name}.jpg')
+    row = ('\t').join(row)
+    with open('쇼핑몰.txt', 'a', encoding='utf-8') as f:
+        f.write(f"{row}\n")
 for item in item_list:
     save_info(item)
-    print(f"완료된 요청 수: {item_list.index(item)+1}/{len(item_list)}")
+    print(f"완료된 요청 수: {item_list.index(item)+1}/{len(item_list)}---{item}")
+driver.quit()
 
 root=tk.Tk()
 root.withdraw()
