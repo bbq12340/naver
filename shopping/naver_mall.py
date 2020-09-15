@@ -35,6 +35,7 @@ def save_info(query):
     soup = BeautifulSoup(html, 'html.parser')
     no_result = soup.find('div',{'class':'noResult_no_result__1ad0P'})
     rated = soup.find_all("p", string="연령 확인이 필요한 서비스입니다. 로그인후 이용해 주세요.")
+    price = soup.find('div', {'class': 'basicList_price_area__1UXXR'})
 
     if no_result:
         no_result_list = ["No Result" for i in range(0,5)]
@@ -42,8 +43,8 @@ def save_info(query):
     elif rated:
         rated_list = ["청소년 부적절" for i in range(0,5)]
         row = [query] + rated_list
-    else:
-        price = soup.find('div', {'class': 'basicList_price_area__1UXXR'}).text
+    elif price:
+        price = price.text
         category = soup.find('div', {'class': 'basicList_depth__2QIie'})
         li = category.find_all('a')
         a_tags = [a.text for a in li]
@@ -73,13 +74,25 @@ def save_info(query):
             try:
                 thumbnail = thumbnail.find('img')['src'].split("?type")[0]
             except TypeError:
-                driver.refresh()
-                WebDriverWait(driver, 10).until(EC.presence_of_element_located(xpath))
+                try:
+                    driver.refresh()
+                    WebDriverWait(driver, 10).until(EC.presence_of_element_located(xpath))
+                except TimeoutError:
+                    with open('bug_report.txt' ,'a', encoding='utf-8') as f:
+                        f.write(f"{query}\n")
+                    return
                 thumbnail = soup.find('a', {'class': 'thumbnail_thumb__3Agq6'}).find('img')['src'].split("?type")[0]
             urllib.request.urlretrieve(thumbnail, f'images/{img_name}.jpg')
+    
+    else:
+        with open('bug_report.txt' ,'a', encoding='utf-8') as f:
+            f.write(f"{query}\n")
+        return
+    
     row = ('\t').join(row)
     with open('쇼핑몰.txt', 'a', encoding='utf-8') as f:
         f.write(f"{row}\n")
+
 for item in item_list:
     save_info(item)
     print(f"완료된 요청 수: {item_list.index(item)+1}/{len(item_list)}---{item}")
