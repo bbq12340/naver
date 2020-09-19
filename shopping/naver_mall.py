@@ -1,10 +1,10 @@
-  
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from urllib.error import HTTPError
 import requests, urllib, random, string, time
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -17,12 +17,15 @@ THUMBNAIL = []
 with open('request.txt', 'r', encoding='utf-8') as f:
     request_list = f.readlines()
 item_list = [request.replace("\n", "") for request in request_list]
+
+with open('request_진행중.txt', 'w', encoding='utf-8') as f:
+    f.writelines(request_list)
 print(f"아이템 수량: {len(item_list)}")
 
 with open('쇼핑몰.txt', 'w') as f:
     f.write('')
 
-with open('img_error.txt', 'w') as f:
+with open('bug_report.txt', 'w') as f:
     f.write('')
 
 driver = webdriver.Chrome(ChromeDriverManager().install())
@@ -35,7 +38,8 @@ def save_info(query):
     soup = BeautifulSoup(html, 'html.parser')
     no_result = soup.find('div',{'class':'noResult_no_result__1ad0P'})
     rated = soup.find_all("p", string="연령 확인이 필요한 서비스입니다. 로그인후 이용해 주세요.")
-    price = soup.find('div', {'class': 'basicList_price_area__1UXXR'})
+    name = soup.find('div', {'class': 'basicList_title__3P9Q7'})
+    
 
     if no_result:
         no_result_list = ["No Result" for i in range(0,5)]
@@ -43,8 +47,14 @@ def save_info(query):
     elif rated:
         rated_list = ["청소년 부적절" for i in range(0,5)]
         row = [query] + rated_list
-    elif price:
-        price = price.text
+    elif name:
+        name = name.text
+        price = soup.find('div', {'class': 'basicList_price_area__1UXXR'}).text
+        if price == '판매중단':
+            with open('bug_report.txt' ,'a', encoding='utf-8') as f:
+                f.write(f"{query}\t판매중단\n")
+            print(f"에러 아이템: {item_list.index(item)+1}/{len(item_list)}---{item}")
+            return
         category = soup.find('div', {'class': 'basicList_depth__2QIie'})
         li = category.find_all('a')
         a_tags = [a.text for a in li]
@@ -65,12 +75,18 @@ def save_info(query):
                 mall_name = mall_name.text
         date = soup.find('button', {'class': 'basicList_btn_zzim__2MGkM'}).parent.previous_sibling.text.replace('등록일 ','')
         now = datetime.now()
-        current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        current_time = now.strftime("%Y-%m-%d %H_%M_%S")
         random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
         img_name= f"{current_time}-{random_code}"
-        row = [query, price, cat, review, mall_name, date, img_name]
+        row = [name, price, cat, review, mall_name, date, img_name]
+
         thumbnail = soup.find('a', {'class': 'thumbnail_thumb__3Agq6'})
-        if thumbnail:
+        rated_thumbnail = soup.find('span', {'class': 'thumbnail_teenager__1erb0'})
+
+        if rated_thumbnail:
+            row[-1] = "청소년 유해상품"
+
+        elif thumbnail:
             try:
                 thumbnail = thumbnail.find('img')['src'].split("?type")[0]
             except TypeError:
@@ -79,24 +95,37 @@ def save_info(query):
                     WebDriverWait(driver, 10).until(EC.presence_of_element_located(xpath))
                 except TimeoutError:
                     with open('bug_report.txt' ,'a', encoding='utf-8') as f:
-                        f.write(f"{query}\n")
+                        f.write(f"{query}\t이미지 에러\n")
+                    print(f"에러 아이템: {item_list.index(item)+1}/{len(item_list)}---{item}")
                     return
                 thumbnail = soup.find('a', {'class': 'thumbnail_thumb__3Agq6'}).find('img')['src'].split("?type")[0]
-            urllib.request.urlretrieve(thumbnail, f'images/{img_name}.jpg')
-    
+            try:
+                urllib.request.urlretrieve(thumbnail, f'images/{img_name}.jpg')
+            except HTTPError:
+                with open('bug_report.txt' ,'a', encoding='utf-8') as f:
+                    f.write(f"{query}\t이미지 에러\n")
+                print(f"에러 아이템: {item_list.index(item)+1}/{len(item_list)}---{item}")
+
     else:
         with open('bug_report.txt' ,'a', encoding='utf-8') as f:
-            f.write(f"{query}\n")
+            f.write(f"{query}\t기타 에러\n")
+        print(f"에러 아이템: {item_list.index(item)+1}/{len(item_list)}---{item}")
         return
     
     row = ('\t').join(row)
     with open('쇼핑몰.txt', 'a', encoding='utf-8') as f:
         f.write(f"{row}\n")
+    print(f"완료된 요청 수: {item_list.index(item)+1}/{len(item_list)}---{item}")
+    return
 
 for item in item_list:
     save_info(item)
-    print(f"완료된 요청 수: {item_list.index(item)+1}/{len(item_list)}---{item}")
+    request_list.pop(0)
+    with open('request_진행중.txt', 'w', encoding='utf-8') as f:
+        f.writelines(request_list)
 driver.quit()
+
+
 
 root=tk.Tk()
 root.withdraw()
