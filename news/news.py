@@ -58,5 +58,12 @@ def search_naver(num, query, enable_recent=False):
         '링크': HREF
     }
     df = pd.DataFrame(data)
-    #df.to_csv("naver.csv")
+    df.to_csv(f"{query}.csv")
     return df
+
+with open('request.txt', 'r', encoding='utf-8') as f:
+    request_list = f.readlines()
+    item_list = [request.replace("\n", "") for request in request_list]
+print(f'---------------------------------------\n\n요청 아이템 수: {len(item_list)}\n\n---------------------------------------\n\n')
+for r in request_list:
+    search_naver(50, r)

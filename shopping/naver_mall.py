@@ -99,12 +99,16 @@ def save_info(query):
                     print(f"에러 아이템: {item_list.index(item)+1}/{len(item_list)}---{item}")
                     return
                 thumbnail = soup.find('a', {'class': 'thumbnail_thumb__3Agq6'}).find('img')['src'].split("?type")[0]
+<<<<<<< HEAD
             try:
                 urllib.request.urlretrieve(thumbnail, f'images/{img_name}.jpg')
             except HTTPError:
                 with open('bug_report.txt' ,'a', encoding='utf-8') as f:
                     f.write(f"{query}\t이미지 에러\n")
                 print(f"에러 아이템: {item_list.index(item)+1}/{len(item_list)}---{item}")
+=======
+            urllib.request.urlretrieve(thumbnail, f'images/{img_name}.jpg')
+>>>>>>> 01648940bfc6e849b37aa74eebf27e72d1b7cd99
 
     else:
         with open('bug_report.txt' ,'a', encoding='utf-8') as f:
