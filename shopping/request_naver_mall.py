@@ -31,12 +31,13 @@ class NaverShoppingScraper:
         for product in product_list:
             item = product['item']
             output = {
-                '카테고리': item['category3Name'],
+                '카테고리': item['category1Name']+">"+item['category2Name']+">"+item['category3Name']+">"+item['category4Name'],
                 '이미지링크': item['imageUrl'],
                 '상품명': item['productName'],
                 '가격': item['price'],
                 '리뷰수': item['reviewCount'],
-                '날짜': item['lstRcvYmdt']
+                '링크': item['mallProductUrl'],
+                '날짜': datetime.strptime(item['openDate'][:-6], '%Y%m%d').strftime('%Y-%m-%d')
             }
             if 'mallInfoCache' in item:
                 output['쇼핑몰명'] = item['mallInfoCache']['mallIntroduction']
