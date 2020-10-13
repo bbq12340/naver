@@ -26,22 +26,24 @@ class Scraper:
                     data = {
                         '업체명': item['name'],
                         '업종': (',').join(item['category']),
-                        '리뷰갯수': item['reviewCount'],
+                        '블로그리뷰': item['reviewCount'],
                         '전화번호': item['tel'],
                         '도로명': item['roadAddress'],
                         '지번': item['address'],
                         'id': item['id']
                     }
-                    data['별점'] = self.get_stars(data['id'])
+                    info = self.get_more_info(data['id'])
+                    data['별점'] = info['star']
+                    data['방문뷰'] = info['review']
                     scraped_items.append(data)
                 i = i + 1
             except KeyError:
                 break
-        df = pd.DataFrame(data=scraped_items, columns=['id','업체명', '별점', '리뷰갯수','업종','전화번호','도로명','지번'])
-        df.to_csv('output.csv', encoding='utf-8-sig')
+        df = pd.DataFrame(data=scraped_items, columns=['업체명', '별점', '방문뷰', '블로그리뷰', '업종','전화번호','도로명','지번'])
+        df.to_csv('output.csv', encoding='utf-8-sig', index=False)
         return df
     
-    def get_stars(self, id):
+    def get_more_info(self, id):
         query = "query getVisitorReviews($input: VisitorReviewsInput, $id: String) {↵  visitorReviews(input: $input) {↵    items {↵      id↵      rating↵      author {↵        id↵        nickname↵        from↵        imageUrl↵        objectId↵        url↵        __typename↵      }↵      body↵      thumbnail↵      media {↵        type↵        thumbnail↵        __typename↵      }↵      tags↵      status↵      visitCount↵      viewCount↵      visited↵      created↵      reply {↵        editUrl↵        body↵        editedBy↵        created↵        replyTitle↵        __typename↵      }↵      originType↵      item {↵        name↵        code↵        options↵        __typename↵      }↵      language↵      highlightOffsets↵      translatedText↵      businessName↵      showBookingItemName↵      showBookingItemOptions↵      bookingItemName↵      bookingItemOptions↵      __typename↵    }↵    starDistribution {↵      score↵      count↵      __typename↵    }↵    hideProductSelectBox↵    total↵    __typename↵  }↵  visitorReviewStats(input: {businessId: $id}) {↵    id↵    name↵    review {↵      avgRating↵      totalCount↵      scores {↵        count↵        score↵        __typename↵      }↵      imageReviewCount↵      __typename↵    }↵    visitorReviewsTotal↵    ratingReviewsTotal↵    __typename↵  }↵  visitorReviewThemes(input: {businessId: $id}) {↵    themeLists {↵      name↵      key↵      __typename↵    }↵    __typename↵  }↵}↵".replace("↵", '\n')
         data = {
             "operationName": "getVisitorReviews",
@@ -60,8 +62,11 @@ class Scraper:
             }
         }
         r = requests.post(self.graphql_url, json=data, headers=self.header).json()
-        star = r['data']['visitorReviewStats']['review']['avgRating']
-        return star
+        info = {
+            'star': r['data']['visitorReviewStats']['review']['avgRating'],
+            'review': r['data']['visitorReviewStats']['visitorReviewsTotal']
+        }
+        return info
 
             
     def get_list_info(self, query, page):
