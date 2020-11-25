@@ -30,10 +30,13 @@ class Application(tk.Frame):
         self.search_btn = tk.Button(self, text="검색", command=self.start_process)
         self.search_btn.pack(pady=5, padx=5)
 
-        self.progress = ttk.Progressbar(self, length=150)
-        self.progress.pack(pady=5, padx=5)
+        self.progress_frame = tk.Frame(self)
+        self.progress = ttk.Progressbar(self.progress_frame, length=150)
+        self.progress_label = tk.Label(self.progress_frame, text="")
+        self.progress.grid(row=0, column=0, padx=5)
+        self.progress_label.grid(row=0, column=1, padx=5)
+        self.progress_frame.pack(pady=5, padx=5)
 
-        
     
     def start_process(self):
         self.thread = Thread(target=self.scrape)
@@ -42,10 +45,16 @@ class Application(tk.Frame):
     
     def scrape(self):
         app = Scraper(self.query.get(), self.progress, self.master)
-        if self.v == 1:
+        if self.v.get() == 1:
+            self.progress_label.config(text="1/1")
             df = app.extract_powerlinks()
         else:
-            df = app.extract_phone()
+            self.progress_label.config(text="1/2")
+            df = app.extract_powerlinks()
+            self.progress['value'] = 0
+            self.master.update_idletasks()
+            self.progress_label.config(text="2/2")
+            df = app.extract_phone(df)
         df.to_csv(f'{self.query.get()}.csv', index=False, encoding='utf-8-sig')
         self.progress['value'] = 0
         self.master.update_idletasks()
