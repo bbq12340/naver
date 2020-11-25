@@ -12,7 +12,7 @@ class Scraper():
         self.headers = {
             'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
         }
-        self.PHONE_FORM = re.compile(r'(\d{2,3})\D+(\d{3,4})-(\d{4})')
+        self.PHONE_FORM = re.compile(r'[0](\d{1,2})[-)](\d{3,4})-(\d{4})')
         
         return
     
@@ -50,15 +50,17 @@ class Scraper():
         self.master.update_idletasks()
         return df
     
-    def extract_phone(self):
+    def extract_phone(self, df):
         index_names = []
         phones = []
-        df = self.extract_powerlinks()
         for url in df['url']:
+            self.progress['value'] = (list(df['url']).index(url)/len(df.index))*100
+            self.master.update_idletasks()
             if "blog.naver.com/" in url:
                 id = url.split('/')[-1]
                 business_url = "https://m.blog.naver.com/rego/BusinessInfo.nhn"
                 introduction_url = "https://m.blog.naver.com/rego/Introduce.nhn"
+                post_url = "https://blog.naver.com/PostList.nhn"
                 headers = {
                     'referer': url,
                     'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
@@ -75,13 +77,29 @@ class Scraper():
                     data = json.loads(r.text.split('\n')[1])
                     try:
                         phone = data['result']['phoneNumber']
+                        if phone == "":
+                            try:
+                                phone = self.PHONE_FORM.search(r.text).group(0)
+                            except:
+                                r = requests.get(post_url, params=params, headers=headers)
+                                try:
+                                    phone = self.PHONE_FORM.search(r.text).group(0)
+                                except:
+                                    phone = None
                     except TypeError:
-                        phone = None
+                        try:
+                            phone = self.PHONE_FORM.search(r.text).group(0)
+                        except:
+                            phone=None
+
                 phones.append(phone)
 
             elif "http://cafe.naver.com/" in url:
                 r = requests.get(url, headers=self.headers)
-                phone = self.PHONE_FORM.search(r.text).group(0)
+                try:
+                    phone = self.PHONE_FORM.search(r.text).group(0)
+                except:
+                    phone = None
                 phones.append(phone)
             else:
                 index_names.append(list(df['url']).index(url))
@@ -89,5 +107,4 @@ class Scraper():
 
         df.drop(index_names, inplace=True)
         df['전화번호'] = phones
-        print(df.head)
         return df
