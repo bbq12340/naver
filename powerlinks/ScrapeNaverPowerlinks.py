@@ -39,6 +39,7 @@ class Scraper():
                 data = {
                     '제목': l.find('div', {'class': 'inner'}).find('a').text.replace("\n",""),
                     '내용': re.sub(' +', ' ',l.find('div', {'class': 'ad_dsc'}).text.replace("\n","")),
+                    '광고집행기간': l.find('div',{"class":"period_area"}).find("em").text,
                     'url': l.find('div', {'class': 'inner'}).find('div',{'class':'url_area'}).find('a').text
                 }
                 extracted.append(data)
@@ -94,10 +95,19 @@ class Scraper():
 
                 phones.append(phone)
 
-            elif "http://cafe.naver.com/" in url:
+            elif "cafe.naver.com/" in url:
                 r = requests.get(url, headers=self.headers)
                 try:
                     phone = self.PHONE_FORM.search(r.text).group(0)
+                except:
+                    phone = None
+                phones.append(phone)
+            
+            elif "smartstore.naver.com/" in url:
+                r = requests.get(url, headers=self.headers)
+                try:
+                    soup = BeautifulSoup(r.text, 'html.parser')
+                    phone = self.PHONE_FORM.search(soup.find('div', {"class":"_3EIHVy-S4E"}).text).group(0)
                 except:
                     phone = None
                 phones.append(phone)
