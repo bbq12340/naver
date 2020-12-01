@@ -26,7 +26,7 @@ class Application(tk.Frame):
         self.request_label = tk.Label(self, text='요청 파일명:')
         self.request_label.grid(row=0, column=0)
 
-        self.page_label = tk.Label(self, text="페이지:")
+        self.page_label = tk.Label(self, text="최대 페이지:")
         self.page_label.grid(row=1, column=0)
 
         self.page_entry = tk.Entry(self, width=3, textvariable=self.page)
