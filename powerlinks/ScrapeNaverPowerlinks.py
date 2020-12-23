@@ -73,7 +73,7 @@ class Scraper():
                 data = json.loads(r.text.split('\n')[1])
                 try:
                     phone = data['result']['businessView']['phone']
-                except TypeError:
+                except:
                     r = requests.post(introduction_url, data=params, headers=headers)
                     data = json.loads(r.text.split('\n')[1])
                     try:
@@ -87,7 +87,7 @@ class Scraper():
                                     phone = self.PHONE_FORM.search(r.text).group(0)
                                 except:
                                     phone = None
-                    except TypeError:
+                    except:
                         try:
                             phone = self.PHONE_FORM.search(r.text).group(0)
                         except:
