@@ -2,14 +2,14 @@ import requests, json
 from bs4 import BeautifulSoup
 import pandas as pd
 
-class Scraper:
+class NaverMapScraper:
     def __init__(self, query):
         self.API_URL = 'https://map.naver.com/v5/api/search'
 
         self.graphql_url = 'https://pcmap-api.place.naver.com/place/graphql'
 
         self.header = {
-            'authority': 'pcmap-api.place.naver.com',
+            # 'authority': 'pcmap-api.place.naver.com',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
         }
         self.query = query
@@ -44,10 +44,10 @@ class Scraper:
         return df
     
     def get_more_info(self, id):
-        query = "query getVisitorReviews($input: VisitorReviewsInput, $id: String) {↵  visitorReviews(input: $input) {↵    items {↵      id↵      rating↵      author {↵        id↵        nickname↵        from↵        imageUrl↵        objectId↵        url↵        __typename↵      }↵      body↵      thumbnail↵      media {↵        type↵        thumbnail↵        __typename↵      }↵      tags↵      status↵      visitCount↵      viewCount↵      visited↵      created↵      reply {↵        editUrl↵        body↵        editedBy↵        created↵        replyTitle↵        __typename↵      }↵      originType↵      item {↵        name↵        code↵        options↵        __typename↵      }↵      language↵      highlightOffsets↵      translatedText↵      businessName↵      showBookingItemName↵      showBookingItemOptions↵      bookingItemName↵      bookingItemOptions↵      __typename↵    }↵    starDistribution {↵      score↵      count↵      __typename↵    }↵    hideProductSelectBox↵    total↵    __typename↵  }↵  visitorReviewStats(input: {businessId: $id}) {↵    id↵    name↵    review {↵      avgRating↵      totalCount↵      scores {↵        count↵        score↵        __typename↵      }↵      imageReviewCount↵      __typename↵    }↵    visitorReviewsTotal↵    ratingReviewsTotal↵    __typename↵  }↵  visitorReviewThemes(input: {businessId: $id}) {↵    themeLists {↵      name↵      key↵      __typename↵    }↵    __typename↵  }↵}↵".replace("↵", '\n')
+        query = "query getVisitorReviews($input: VisitorReviewsInput, $id: String) {↵  visitorReviews(input: $input) {↵    items {↵      id↵      rating↵      author {↵        id↵        nickname↵        from↵        imageUrl↵        objectId↵        url↵        __typename↵      }↵      body↵      thumbnail↵      media {↵        type↵        thumbnail↵        __typename↵      }↵      tags↵      status↵      visitCount↵      viewCount↵      visited↵      created↵      reply {↵        editUrl↵        body↵        editedBy↵        created↵        replyTitle↵        __typename↵      }↵      originType↵      item {↵        name↵        code↵        options↵        __typename↵      }↵      language↵      highlightOffsets↵      translatedText↵      businessName↵      showBookingItemName↵      showBookingItemOptions↵      bookingItemName↵      bookingItemOptions↵      __typename↵    }↵    starDistribution {↵      score↵      count↵      __typename↵    }↵    hideProductSelectBox↵    total↵    __typename↵  }↵  visitorReviewStats(input: {businessId: $id}) {↵    id↵    name↵    review {↵      avgRating↵      totalCount↵      scores {↵        count↵        score↵        __typename↵      }↵      imageReviewCount↵      __typename↵    }↵    visitorReviewsTotal↵    ratingReviewsTotal↵    __typename↵  }↵  visitorReviewThemes(input: {businessId: $id}) {↵    themeLists {↵      name↵      key↵      __typename↵    }↵    __typename↵  }↵}↵"
         data = {
             "operationName": "getVisitorReviews",
-            "query": query,
+            "query": query.replace("↵", '\n'),
             "variables": {
                 "id": f"{id}",
                 "input": {
@@ -83,53 +83,75 @@ class Scraper:
         # r.encoding = 'utf-8'
         return r
 
-    # def get_location_info(self, query, start):
-    #     header = {
-    #         'authority': 'pcmap-api.place.naver.com',
-    #         'accept-encoding': 'gzip, deflate, br',
-    #         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
-    #     }
+    def get_summary(self, id):
+        URL=f"https://map.naver.com/v5/api/sites/summary/{id}?lang=ko"
+        r = requests.get(URL, headers=self.header).json()
 
-    #     query = "query getRestaurants($input: RestaurantsInput, $isNmap: Boolean!, $isBounds: Boolean!) {↵  restaurants(input: $input) {↵    total↵    items {↵      ...RestaurantItemFields↵      easyOrder {↵        easyOrderId↵        easyOrderCid↵        businessHours {↵          weekday {↵            start↵            end↵            __typename↵          }↵          weekend {↵            start↵            end↵            __typename↵          }↵          __typename↵        }↵        __typename↵      }↵      baemin {↵        businessHours {↵          deliveryTime {↵            start↵            end↵            __typename↵          }↵          closeDate {↵            start↵            end↵            __typename↵          }↵          temporaryCloseDate {↵            start↵            end↵            __typename↵          }↵          __typename↵        }↵        __typename↵      }↵      yogiyo {↵        businessHours {↵          actualDeliveryTime {↵            start↵            end↵            __typename↵          }↵          bizHours {↵            start↵            end↵            __typename↵          }↵          __typename↵        }↵        __typename↵      }↵      __typename↵    }↵    nlu {↵      ...NluFields↵      __typename↵    }↵    brand {↵      name↵      isBrand↵      type↵      menus {↵        order↵        id↵        images {↵          url↵          desc↵          __typename↵        }↵        name↵        desc↵        price↵        isRepresentative↵        detailUrl↵        orderType↵        catalogId↵        source↵        menuId↵        nutrients↵        allergies↵        __typename↵      }↵      __typename↵    }↵    optionsForMap @include(if: $isBounds) {↵      maxZoom↵      minZoom↵      includeMyLocation↵      maxIncludePoiCount↵      center↵      spotId↵      __typename↵    }↵    __typename↵  }↵}↵↵fragment RestaurantItemFields on RestaurantSummary {↵  id↵  dbType↵  name↵  businessCategory↵  category↵  description↵  hasBooking↵  hasNPay↵  x↵  y↵  distance↵  imageUrl↵  imageUrls↵  imageCount↵  phone↵  virtualPhone↵  routeUrl↵  streetPanorama {↵    id↵    pan↵    tilt↵    lat↵    lon↵    __typename↵  }↵  roadAddress↵  address↵  commonAddress↵  blogCafeReviewCount↵  bookingReviewCount↵  totalReviewCount↵  bookingReviewScore↵  bookingUrl↵  bookingBusinessId↵  talktalkUrl↵  options↵  promotionTitle↵  agencyId↵  businessHours↵  microReview↵  tags↵  priceCategory↵  broadcastInfo {↵    program↵    date↵    menu↵    __typename↵  }↵  michelinGuide {↵    year↵    star↵    comment↵    url↵    hasGrade↵    isBib↵    alternateText↵    __typename↵  }↵  broadcasts {↵    program↵    menu↵    episode↵    broadcast_date↵    __typename↵  }↵  tvcastId↵  naverBookingCategory↵  saveCount↵  uniqueBroadcasts↵  isDelivery↵  markerLabel @include(if: $isNmap) {↵    text↵    style↵    __typename↵  }↵  imageMarker @include(if: $isNmap) {↵    marker↵    markerSelected↵    __typename↵  }↵  isTableOrder↵  isPreOrder↵  isTakeOut↵  bookingDisplayName↵  bookingVisitId↵  bookingPickupId↵  popularMenuImages {↵    name↵    price↵    bookingCount↵    menuUrl↵    menuListUrl↵    imageUrl↵    isPopular↵    usePanoramaImage↵    __typename↵  }↵  visitorReviewCount↵  visitorReviewScore↵  detailCid {↵    c0↵    c1↵    c2↵    c3↵    __typename↵  }↵  streetPanorama {↵    id↵    pan↵    tilt↵    lat↵    lon↵    __typename↵  }↵  __typename↵}↵↵fragment NluFields on Nlu {↵  queryType↵  user {↵    gender↵    __typename↵  }↵  queryResult {↵    ptn0↵    ptn1↵    region↵    spot↵    tradeName↵    service↵    selectedRegion {↵      name↵      index↵      x↵      y↵      __typename↵    }↵    selectedRegionIndex↵    otherRegions {↵      name↵      index↵      __typename↵    }↵    property↵    keyword↵    queryType↵    nluQuery↵    businessType↵    cid↵    branch↵    franchise↵    titleKeyword↵    location {↵      x↵      y↵      default↵      longitude↵      latitude↵      dong↵      si↵      __typename↵    }↵    noRegionQuery↵    priority↵    showLocationBarFlag↵    themeId↵    filterBooking↵    repRegion↵    repSpot↵    dbQuery {↵      isDefault↵      name↵      type↵      getType↵      useFilter↵      hasComponents↵      __typename↵    }↵    type↵    category↵    __typename↵  }↵  __typename↵}↵".replace("↵","\n")
-        
-    #     data = {
-    #         'operationName': "getRestaurants",
-    #         'query': query,
-    #         'variables': {'input': {
-    #             'deviceType': "pcmap",
-    #             'display': 50,
-    #             'isNmap': False,
-    #             'query': query,
-    #             'start': start
-    #         },
-    #         'isBounds': True,
-    #         'isNmap': False
-    #         }
-    #     }
-    #     r = requests.post(self.API_URL, headers=header, json=data).json()
-        
-    #     
-
-    #     
-    #     with open('newgangnam.json', 'w', encoding='utf-8') as f:
-    #         result = json.dumps(r, indent=4, sort_keys=True, ensure_ascii=False)
-    #         f.write(result)
-
-    #     return
+        urlList = r['urlList'] # url 리스트
+        with open("summary.json", "w", encoding="utf-8-sig") as f:
+            f.write(json.dumps(r, sort_keys=True, indent=4, ensure_ascii=False))
+        return urlList
     
-    def get_items_info(self, items):
-        scraped_items = []
-        for item in items:
-            data = {
-                '업체명': item['name'],
-                '업종': (',').join(item['category']),
-                '별점': None,
-                '리뷰갯수': item['reviewCount'],
-                '전화번호': item['tel'],
-                '도로명': item['roadAddress'],
-                '지번': item['address'],
-                '우편번호': None,
-                'id': item['id']
+    def get_postcode(self, address):
+        URL = "https://search.naver.com/search.naver"
+        params = {
+            "where": "nexearch",
+            "ie": "utf8",
+            "X_CSA": "address_search",
+            "query": address+" 우편번호"
+        }
+        r = requests.get(URL, params=params, headers=self.header)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        section = soup.find("section", {"class": "sc_new ds_address"})
+        p_code = section.find("td", {"class": "tc"}).text
+        return p_code
+
+    
+    def scrape_restaurants(self, **kwargs):
+        # kwargs = {'order': 배달(delivery), 'postCode': 우편번호, 'url': 홈페이지 }
+        scraped_items  = []
+        i=1
+        while True:
+            r = self.get_restaurants(self.query, i, kwargs['order'])
+            items = r['data']['restaurants']['items']
+            for item in items:
+                data = {
+                    '업체명': item["name"],
+                    '전화번호': item["phone"],
+                    '주소': item["address"],
+                    'id': item["id"]
+                }
+                if kwargs['postCode'] == True:
+                    data['우편번호'] = self.get_postcode(item["address"])
+                if kwargs['url'] == True:
+                    urlList = self.get_summary(item["id"])
+
+            i=i+1
+    
+    def get_restaurants(self, location, page, **kwargs):
+        query = "query getRestaurants($input: RestaurantsInput, $isNmap: Boolean!, $isBounds: Boolean!) {↵  restaurants(input: $input) {↵    total↵    items {↵      ...RestaurantItemFields↵      easyOrder {↵        easyOrderId↵        easyOrderCid↵        businessHours {↵          weekday {↵            start↵            end↵            __typename↵          }↵          weekend {↵            start↵            end↵            __typename↵          }↵          __typename↵        }↵        __typename↵      }↵      baemin {↵        businessHours {↵          deliveryTime {↵            start↵            end↵            __typename↵          }↵          closeDate {↵            start↵            end↵            __typename↵          }↵          temporaryCloseDate {↵            start↵            end↵            __typename↵          }↵          __typename↵        }↵        __typename↵      }↵      yogiyo {↵        businessHours {↵          actualDeliveryTime {↵            start↵            end↵            __typename↵          }↵          bizHours {↵            start↵            end↵            __typename↵          }↵          __typename↵        }↵        __typename↵      }↵      __typename↵    }↵    nlu {↵      ...NluFields↵      __typename↵    }↵    brand {↵      name↵      isBrand↵      type↵      menus {↵        order↵        id↵        images {↵          url↵          desc↵          __typename↵        }↵        name↵        desc↵        price↵        isRepresentative↵        detailUrl↵        orderType↵        catalogId↵        source↵        menuId↵        nutrients↵        allergies↵        __typename↵      }↵      __typename↵    }↵    optionsForMap @include(if: $isBounds) {↵      maxZoom↵      minZoom↵      includeMyLocation↵      maxIncludePoiCount↵      center↵      spotId↵      __typename↵    }↵    __typename↵  }↵}↵↵fragment RestaurantItemFields on RestaurantSummary {↵  id↵  dbType↵  name↵  businessCategory↵  category↵  description↵  hasBooking↵  hasNPay↵  x↵  y↵  distance↵  imageUrl↵  imageUrls↵  imageCount↵  phone↵  virtualPhone↵  routeUrl↵  streetPanorama {↵    id↵    pan↵    tilt↵    lat↵    lon↵    __typename↵  }↵  roadAddress↵  address↵  commonAddress↵  blogCafeReviewCount↵  bookingReviewCount↵  totalReviewCount↵  bookingReviewScore↵  bookingUrl↵  bookingHubUrl↵  bookingHubButtonName↵  bookingBusinessId↵  talktalkUrl↵  options↵  promotionTitle↵  agencyId↵  businessHours↵  microReview↵  tags↵  priceCategory↵  broadcastInfo {↵    program↵    date↵    menu↵    __typename↵  }↵  michelinGuide {↵    year↵    star↵    comment↵    url↵    hasGrade↵    isBib↵    alternateText↵    __typename↵  }↵  broadcasts {↵    program↵    menu↵    episode↵    broadcast_date↵    __typename↵  }↵  tvcastId↵  naverBookingCategory↵  saveCount↵  uniqueBroadcasts↵  isDelivery↵  isCvsDelivery↵  markerLabel @include(if: $isNmap) {↵    text↵    style↵    __typename↵  }↵  imageMarker @include(if: $isNmap) {↵    marker↵    markerSelected↵    __typename↵  }↵  isTableOrder↵  isPreOrder↵  isTakeOut↵  bookingDisplayName↵  bookingVisitId↵  bookingPickupId↵  popularMenuImages {↵    name↵    price↵    bookingCount↵    menuUrl↵    menuListUrl↵    imageUrl↵    isPopular↵    usePanoramaImage↵    __typename↵  }↵  visitorReviewCount↵  visitorReviewScore↵  detailCid {↵    c0↵    c1↵    c2↵    c3↵    __typename↵  }↵  streetPanorama {↵    id↵    pan↵    tilt↵    lat↵    lon↵    __typename↵  }↵  __typename↵}↵↵fragment NluFields on Nlu {↵  queryType↵  user {↵    gender↵    __typename↵  }↵  queryResult {↵    ptn0↵    ptn1↵    region↵    spot↵    tradeName↵    service↵    selectedRegion {↵      name↵      index↵      x↵      y↵      __typename↵    }↵    selectedRegionIndex↵    otherRegions {↵      name↵      index↵      __typename↵    }↵    property↵    keyword↵    queryType↵    nluQuery↵    businessType↵    cid↵    branch↵    franchise↵    titleKeyword↵    location {↵      x↵      y↵      default↵      longitude↵      latitude↵      dong↵      si↵      __typename↵    }↵    noRegionQuery↵    priority↵    showLocationBarFlag↵    themeId↵    filterBooking↵    repRegion↵    repSpot↵    dbQuery {↵      isDefault↵      name↵      type↵      getType↵      useFilter↵      hasComponents↵      __typename↵    }↵    type↵    category↵    menu↵    __typename↵  }↵  __typename↵}↵"
+        if kwargs['order'] == 'delivery':
+            order = "배달"
+        else:
+            order = "off"
+        data = {
+            "operationName": "getRestaurants",
+            "query": query.replace("↵", '\n'),
+            "variables": {
+                "input": {
+                    "deviceType": "pcmap",
+                    "display": 50,
+                    "isNmap": False,
+                    "order": order,
+                    "query": location,
+                    "start": page,
+                },
+                "isBounds": True,
+                "isNmap": False
             }
-        scraped_items.append(data)
-        return scraped_items
+        }
+        r = requests.post(self.graphql_url, json=data, headers=self.header).json()
+        with open("restaurants.json", "w", encoding="utf-8-sig") as f:
+            f.write(json.dumps(r, sort_keys=True, indent=4, ensure_ascii=False))
+        return r
+        
