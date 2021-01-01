@@ -14,7 +14,7 @@ class MallScraper:
         with open("list.txt", "w") as f:
             f.write("")
         return
-    def query(self, category, word, sort, sp, ep):
+    def query(self, category, word, sort, sp, ep, key):
         LINKS = []
         for p in range(sp, ep+1):
             self.progress_label.config(text=f"{p}페이지 수집중...")
@@ -24,7 +24,7 @@ class MallScraper:
             "sortingOrder": sort,
             "page": p,
             "pagesize": "20",
-            "name":""
+            "name":key
             }
             r = requests.get(self.URL, headers=self.headers, params=payload)
             soup = BeautifulSoup(r.text, 'html.parser')
