@@ -10,8 +10,6 @@ class Scraper():
         self.headers = {
             'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
         }
-        self.email_format = re.compile(r"[0-9a-zA-Z\.-]+@[0-9a-zA-Z\.-]+\.[a-zA-Z\.]+")
-        self.reporter_format = re.compile(r'[가-힣]{2,3}\s?기자[\n\s\t]')
     
     def extract_main_url(self, url, page):
         extracted = []
@@ -39,7 +37,8 @@ class Scraper():
         return extracted
 
     def extract_reporter(self, url):
-        print(url)
+        self.email_format = re.compile(r"[0-9a-zA-Z\.-]+@[0-9a-zA-Z\.-]+\.[a-zA-Z\.]+")
+        self.reporter_format = re.compile(r'[가-힣]{2,3}\s?기자[\n\s\t]')
         r = requests.get(url, headers=self.headers)
         soup = BeautifulSoup(r.text, 'html.parser')
         article_body = soup.find('div',{'class':'_article_body_contents'})
