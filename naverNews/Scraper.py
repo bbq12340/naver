@@ -5,11 +5,69 @@ from urllib.parse import parse_qs
 
 
 class Scraper():
-    def __init__(self):
+    def __init__(self, delay):
         self.API_URL = "https://news.naver.com/main/list.nhn"
         self.headers = {
             'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
         }
+        self.delay = delay
+        
+    def extract_naver_news_article(self, link):
+        NAVER_NEWS_URL = link
+        r = requests.get(NAVER_NEWS_URL, headers=self.headers)
+        soup = BeautifulSoup(r.text, "html.parser")
+        with open("soup.txt", "w") as f:
+            f.write(r.text)
+        article_date = soup.find_all('span', {'class': 't11'})[-1].text
+        article_body = soup.find('div', {'class': '_article_body_contents'}).text
+        article_body = re.sub('[\n\t\r]', ' ', article_body)
+        data = {
+            "article_date": article_date,
+            "article_body": article_body
+        }
+        return data
+    
+    def extract_naver_news_main(self, query, dateFrom, dateTo, amount):
+        NAVER_URL = "https://search.naver.com/search.naver"
+        start = 1
+        count = 0
+        payload = {
+            "where": "news",
+            "query": query,
+            "sort": 0,
+            "ds": dateFrom,
+            "de": dateTo,
+            "start": start
+        }
+        while True:
+            data = {
+                "dates": [], # 날짜
+                "titles": [], # 제목
+                "summaries": [], # 요약
+                "articles": [], # 본문
+                "links": [] # 링크
+            }
+            r = requests.get(NAVER_URL, params=payload, headers=self.headers)
+            soup = BeautifulSoup(r.text, "html.parser")
+            ul = soup.find("ul",{"class":"list_news"}).find_all("li", {"class":"bx"})
+            for li in ul:
+                try:
+                    data['links'].append(li.find('div', {'class':'news_area'}).find('a',string="네이버뉴스")['href'])
+                    data['titles'].append(li.find('a',{'class':'news_tit'})['title'])
+                    data['summaries'].append(li.find('a',{'class':'dsc_txt_wrap'}).text)
+                    count += 1
+                except:
+                    pass
+            for link in data['links']:
+                article = self.extract_naver_news_article(link)
+                data['dates'].append(article['article_date'])
+                data['articles'].append(article['article_body'])
+                time.sleep(self.delay)
+            payload["start"] += 10
+            df = pd.DataFrame(data, columns=list(data.keys()))
+            df.to_csv(f'result/{query}.csv', encoding='utf-8-sig', mode='a', header=False, index=False)
+            if count >= amount:
+                break
     
     def extract_main_url(self, url, page):
         extracted = []
