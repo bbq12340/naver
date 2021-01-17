@@ -27,7 +27,7 @@ class Scraper():
         }
         return data
     
-    def extract_naver_news_main(self, query, dateFrom, dateTo, amount):
+    def extract_naver_news_main(self, query, dateFrom, dateTo, amount=float('inf')):
         NAVER_URL = "https://search.naver.com/search.naver"
         start = 1
         count = 0
@@ -66,6 +66,9 @@ class Scraper():
             payload["start"] += 10
             df = pd.DataFrame(data, columns=list(data.keys()))
             df.to_csv(f'result/{query}.csv', encoding='utf-8-sig', mode='a', header=False, index=False)
+            if len(ul) < 10:
+                self.finished.emit()
+                return
             if count >= amount:
                 break
     
