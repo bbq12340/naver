@@ -1,24 +1,23 @@
-import requests, re
+import requests, re, time
 from bs4 import BeautifulSoup
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
+import pandas as pd
 
 
-class Scraper():
-    def __init__(self, delay):
-        self.API_URL = "https://news.naver.com/main/list.nhn"
+class NaverNewsScraper():
+    def __init__(self, **kwargs):
+        
         self.headers = {
             'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.67 Safari/537.36"
         }
-        self.delay = delay
-        
+        self.delay = kwargs['delay']
+    
     def extract_naver_news_article(self, link):
         NAVER_NEWS_URL = link
         r = requests.get(NAVER_NEWS_URL, headers=self.headers)
         soup = BeautifulSoup(r.text, "html.parser")
-        with open("soup.txt", "w") as f:
-            f.write(r.text)
-        article_date = soup.find_all('span', {'class': 't11'})[-1].text
+        article_date = soup.find_all('span', {'class': 't11'})[0].text
         article_body = soup.find('div', {'class': '_article_body_contents'}).text
         article_body = re.sub('[\n\t\r]', ' ', article_body)
         data = {
@@ -27,7 +26,7 @@ class Scraper():
         }
         return data
     
-    def extract_naver_news_main(self, query, dateFrom, dateTo, amount=float('inf')):
+    def extract_naver_news_main(self, query, dateFrom, dateTo, amount):
         NAVER_URL = "https://search.naver.com/search.naver"
         start = 1
         count = 0
@@ -37,6 +36,7 @@ class Scraper():
             "sort": 0,
             "ds": dateFrom,
             "de": dateTo,
+            "nso": f"so:r,p:from{self.dateFrom.replace('.','')}to{self.dateTo.replace('.','')},a:all",
             "start": start
         }
         while True:
@@ -56,6 +56,7 @@ class Scraper():
                     data['titles'].append(li.find('a',{'class':'news_tit'})['title'])
                     data['summaries'].append(li.find('a',{'class':'dsc_txt_wrap'}).text)
                     count += 1
+                    print(count)
                 except:
                     pass
             for link in data['links']:
@@ -67,12 +68,13 @@ class Scraper():
             df = pd.DataFrame(data, columns=list(data.keys()))
             df.to_csv(f'result/{query}.csv', encoding='utf-8-sig', mode='a', header=False, index=False)
             if len(ul) < 10:
-                self.finished.emit()
                 return
             if count >= amount:
                 break
+
     
     def extract_main_url(self, url, page):
+        MAIN_URL = "https://news.naver.com/main/list.nhn"
         extracted = []
         parsed = parse_qs(urlparse.urlparse(url).query)
         params = {
@@ -81,7 +83,7 @@ class Scraper():
             "sid1": parsed['sid1'][0],
             "page": page
         }
-        r = requests.get(self.API_URL, params=params, headers=self.headers)
+        r = requests.get(MAIN_URL, params=params, headers=self.headers)
         if r.status_code != 200:
             return
         soup = BeautifulSoup(r.text, 'html.parser')
@@ -117,6 +119,3 @@ class Scraper():
             'link': url
         }
         return data
-
-
-        
