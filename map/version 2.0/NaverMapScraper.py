@@ -37,6 +37,10 @@ class NaverMapScraper:
                         '지번': item['address'],
                         'id': item['id']
                     }
+                    if item['category'] == None:
+                        data['업종'] = ""
+                    else:
+                        data['업종'] = (',').join(item['category'])
                     info = self.get_more_info(data['id'])
                     data['별점'] = info['star']
                     data['방문뷰'] = info['review']
@@ -69,7 +73,13 @@ class NaverMapScraper:
             }
         }
         r = requests.post(self.graphql_url, json=data,
-                          headers=self.header).json()
+                          headers={
+                              'authority': 'pcmap-api.place.naver.com',
+                              'method': 'POST',
+                              'scheme': 'https',
+                              'referer': f'https://map.naver.com/v5/api/sites/summary/{id}?lang=ko',
+                              'user-agent': self.header['user-agent']
+                          }).json()
         info = {
             'star': r['data']['visitorReviewStats']['review']['avgRating'],
             'review': r['data']['visitorReviewStats']['visitorReviewsTotal']
