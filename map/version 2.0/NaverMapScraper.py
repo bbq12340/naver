@@ -5,7 +5,7 @@ import pandas as pd
 
 
 class NaverMapScraper:
-    def __init__(self, query):
+    def __init__(self):
         self.API_URL = 'https://map.naver.com/v5/api/search'
 
         self.graphql_url = 'https://pcmap-api.place.naver.com/place/graphql'
@@ -17,15 +17,13 @@ class NaverMapScraper:
             'referer': 'https://map.naver.com/',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
         }
-        self.query = query
 
-    def scrape_info(self):
+    def scrape_info(self, query):
         scraped_items = []
-        r = self.get_list_info(self.query, 1)
         i = 1
         while True:
-            response = self.get_list_info(self.query, i)
             try:
+                response = self.get_list_info(query, i)
                 items = response['result']['place']['list']
                 for item in items:
                     data = {
@@ -48,9 +46,12 @@ class NaverMapScraper:
                 i = i + 1
             except KeyError:
                 break
+            except TypeError:
+                print('조건에 맞는 업체가 없습니다.')
+                break
         df = pd.DataFrame(data=scraped_items, columns=[
                           '업체명', '별점', '방문뷰', '블로그리뷰', '업종', '전화번호', '도로명', '지번'])
-        df.to_csv(f'result/{self.query}.csv',
+        df.to_csv(f'result/{query}.csv',
                   encoding='utf-8-sig', index=False)
         return df
 
