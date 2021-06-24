@@ -25,6 +25,8 @@ class NaverMapScraper:
             try:
                 response = self.get_list_info(query, i)
                 items = response['result']['place']['list']
+                if len(items) == 0:
+                    break
                 for item in items:
                     data = {
                         '업체명': item['name'],
@@ -47,7 +49,6 @@ class NaverMapScraper:
             except KeyError:
                 break
             except TypeError:
-                print('조건에 맞는 업체가 없습니다.')
                 break
         df = pd.DataFrame(data=scraped_items, columns=[
                           '업체명', '별점', '방문뷰', '블로그리뷰', '업종', '전화번호', '도로명', '지번'])
@@ -91,7 +92,6 @@ class NaverMapScraper:
         payload = {
             'query': query,
             'caller': 'pcweb',
-            'displayCount': 50,
             'page': page,
             'type': 'all',
             'isPlaceRecommendationReplace': 'true',
@@ -99,7 +99,8 @@ class NaverMapScraper:
         }
         r = requests.get(self.API_URL, params=payload,
                          headers=self.header)
-        # r.encoding = 'utf-8'
+        if r.status_code != 200:
+            return {'result':{'place':{'list':[]}}}
         return r.json()
 
     def scrape_restaurants(self, **kwargs):
